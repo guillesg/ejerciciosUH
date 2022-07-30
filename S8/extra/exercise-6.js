@@ -1,92 +1,177 @@
-const characters$$ = document.querySelector("[data-function='characters']")
-const arena$$ = document.querySelector("[data-function='arena']")
-let playerOne;
-let playerTwo;
+const container$$ = document.getElementById('charactersContainer')
+const arena = document.createElement('div')
 
-init();
-async function init() {
-    const characters = await getCharacters();
-    printCharacters(characters);
-}
+fetch('http://localhost:3000/characters').then(res => res.json()).then(res => createCharacters(res))
 
-async function getCharacters() {
-    try {
-        const res = await fetch("http://localhost:3000/characters");
-        return await res.json();
-    } catch (e) {
-        console.error(e)
+function createCharacters(characters) {
+    for (let character of characters) {
+        const divCharacter$$ = document.createElement('div')
+        const img$$ = document.createElement('img')
+        const nameP$$ = document.createElement('p')
+        const btnDelete$$ = document.createElement('button')
+
+        
+        nameP$$.textContent = character.name
+        img$$.src = character.avatar
+        img$$.classList.add('images')
+        
+        btnDelete$$.textContent = 'Eliminar'
+
+        divCharacter$$.appendChild(img$$)
+        divCharacter$$.appendChild(nameP$$)
+        divCharacter$$.appendChild(btnDelete$$)
+        container$$.appendChild(divCharacter$$)
+
+        img$$.addEventListener('click', (e) => {
+            selectFighters(character, e.target)
+        })
+
+        btnDelete$$.addEventListener('click', (e) => {
+            deleteCharacter(character)
+        })
     }
 }
 
-function printCharacters(characters) {
-    for (const character of characters) {
-        const div$$ = document.createElement("div");
-        div$$.classList.add("c-characters__item")
-        div$$.innerHTML = `
-            <img src="${character.avatar}"/>
-            <h2>${character.name}</h2>
-        `
+function deleteCharacter(character) {
+    fetch('http://localhost:3000/characters/' + character.id, {
+        method: 'DELETE',
+    })
+    .then(res => res.json()) 
+    .then(res => console.log(res))
+}
 
-        div$$.addEventListener("click", () => { selectPlayer(character) })
-        characters$$.appendChild(div$$)
+let charactersSelected = []
+
+function selectFighters(target) {
+    charactersSelected.push(target)
+    
+
+    if (charactersSelected.length === 2) {
+        const btnsContainer$$ = document.createElement('div')
+
+        const btnFight$$ = document.createElement('button')
+        btnFight$$.classList.add('btnfight')
+        btnFight$$.textContent = 'A luchar!'
+        btnFight$$.addEventListener('click', (e) => {
+            readyToFight(target, charactersSelected)
+        })
+        btnsContainer$$.appendChild(btnFight$$)
+
+        const resetFight$$ = document.createElement('button')
+        resetFight$$.classList.add('btnfight')
+        resetFight$$.textContent = 'Elegir de nuevo'
+        resetFight$$.addEventListener('click', (e) => {
+            resetFight(e, btnsContainer$$)
+        })
+        btnsContainer$$.appendChild(resetFight$$)
+
+        container$$.appendChild(btnsContainer$$)
+        console.log(charactersSelected)
     }
 }
 
-function selectPlayer(character) {
-    if (playerOne) {
-        playerTwo = character;
-        readyForBattle();
-    } else {
-        playerOne = character;
+function readyToFight(character) {
+    const random = Math.floor(Math.random() * 2)
+
+    if (random === 1) {
+        fight(charactersSelected[0], charactersSelected[1])
+    }
+    else {
+        fight(charactersSelected[1], charactersSelected[0])
     }
 }
 
-function readyForBattle() {
-    const button$$ = document.createElement("button");
-    button$$.innerHTML = "Fight!"
-    button$$.addEventListener('click', battle)
-    characters$$.appendChild(button$$)
-}
+function fight(fighter, defender) {
+    let damage = 0
 
-function battle() {
-    const randomNumber = Math.floor(Math.random() * 2) + 1;
-    if (randomNumber === 1) {
-        round(playerOne, playerTwo);
-    } else {
-        round(playerTwo, playerOne);
-    }
-}
-
-function round(playerFighting, playerDefending) {
-    let roundDamage = 0;
-    for (const dice of playerFighting.damage) {
-        roundDamage += rollADice(dice, playerFighting.critic);
+    for (let dice of fighter.damage) {
+        damage += rollDice(dice, fighter.critic)
     }
 
-    finalDamage(roundDamage, playerDefending);
+    finalDamage(damage, defender)
 
-    if (playerDefending.vitality > 0) {
-        setTimeout(() => { round(playerDefending, playerFighting) }, 250);
-    }
-    console.log(playerFighting.name + " pegando");
-    console.log(playerDefending.name + " vida: " + playerDefending.vitality);
-}
+    if (defender.vitality > 0) {
+        setTimeout(() => { 
+            fight(fighter, defender)
+            
+        }, 250)
 
-function finalDamage(damage, playerDefending) {
-    const finalDamage = damage - playerDefending.defense;
-    playerDefending.vitality -= finalDamage;
-}
+        console.log(`${fighter.name} pegando`)
+        console.log(`${defender.name} vida: ${defender.vitality}`)
 
-function rollADice(dice, critic) {
-    const indexOfD = dice.indexOf("d");
-    const timesToRoll = dice.substring(0, indexOfD);
-    const sides = dice.substring(indexOfD + 1, dice.length);
-    let diceDamage = 0;
+        const pFighter$$ = document.createElement('p')
+        pFighter$$.textContent = `${fighter.name} pegando`
+        const pDefender$$ = document.createElement('p')
+        pDefender$$.textContent = `${defender.name} vida: ${defender.vitality}`     
+        arena.appendChild(pFighter$$)
+        arena.appendChild(pDefender$$)
 
-    for (let index = 0; index < timesToRoll; index++) {
-        rollingDamage = Math.floor(Math.random() * Number(sides)) + 1;
-        diceDamage += rollingDamage === critic ? rollingDamage * 2 : rollingDamage;
     }
 
-    return diceDamage;
+    if (defender.vitality < 0) {
+        const pFighter$$ = document.createElement('p')
+        pFighter$$.textContent = `${fighter.name} pegando`
+        const finishP$$ = document.createElement('p')
+        finishP$$.textContent = `${defender.name} vida: 0`
+        arena.appendChild(pFighter$$)
+        arena.appendChild(finishP$$)
+        console.log(`${fighter.name} pegando`)
+        console.log(`${defender.name} vida: 0`)
+    }
+    container$$.appendChild(arena)
+}
+
+function finalDamage(damage, defender) {
+    const finalDamage = damage - defender.defense
+    defender.vitality -= finalDamage
+}
+
+function rollDice(dice, critic) {
+    const whereIsD = dice.indexOf('d')
+
+    const roll = dice.substring(0, whereIsD)
+    const sides = dice.substring(whereIsD + 1)
+
+    let diceDamage = 0
+
+    for (let i = 0; i < roll; i++) {
+        let rollDamage = Math.floor(Math.random() * Number(sides)) + 1
+        diceDamage += rollDamage === critic ? rollDamage * 2 : rollDamage
+    }
+
+    return diceDamage
+}
+
+function resetFight(event, container) {
+    charactersSelected = []
+    container.remove()
+    arena.remove()
+}
+
+const form = document.querySelector('form')
+
+form.addEventListener('submit', getData)
+
+function getData(event) {
+    event.preventDefault()
+    const data = Object.fromEntries(new FormData(form).entries());
+
+    data.defense = Number(data.defense)
+    data.critic = Number(data.critic)
+    data.vitality = Number(data.vitality)
+
+    data.damage = data.damage.split(',')
+
+    console.log(data)
+
+    fetch('http://localhost:3000/characters', {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json, text/plain, */*',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(res => console.log(res));
 }

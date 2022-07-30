@@ -1,108 +1,97 @@
-const baseUrl = 'https://opentdb.com/api.php?type=multiple&amount=';
-let questionsAnswered = [];
-const gameBoard$$ = document.querySelector('[data-function="gameboard"]');
-const input$$ = document.querySelector('[data-function="questions-number"]');
+const baseUrl = 'https://opentdb.com/api.php?amount='
+const input$$ = document.getElementById('inputQuest$$')
+const btnQuest$$ = document.getElementById('btnQuest$$')
+const btnCheck$$ = document.getElementById('btnCheck$$')
+const questContainer$$ = document.getElementById('questContainer$$')
 
-const startGame = () => {
-    resetGame();
+let answered = []
 
-    fetch(baseUrl + input$$.value).then(res => res.json()).then(res => {
+function initialize() {
+    reset()
+
+    fetch(baseUrl + input$$.value) 
+    .then(res => res.json())
+    .then(res => {
         createQuestions(res.results)
     })
 }
 
-const resetGame = () => {
-    questionsAnswered = [];
-    gameBoard$$.innerHTML = '';
+function reset() {
+    questContainer$$.innerHTML = ''
+    answered = []
 }
 
-const createQuestions = (questions) => {
-    for (let index = 0; index < questions.length; index++) {
-        const question = questions[index];
+function createQuestions(questions) {
+    for (let i = 0; i < questions.length; i++) {
+        const question = questions[i]
 
-        const h4$$ = document.createElement('h4');
-        h4$$.textContent = question.question;
+        const h2$$ = document.createElement('h2')
+        h2$$.textContent = question.question
+        questContainer$$.appendChild(h2$$)
 
-        gameBoard$$.appendChild(h4$$);
-        
-        const shuffleArray = shuffle([question.correct_answer, ...question.incorrect_answers]);
-        createAnwsers(shuffleArray, question.correct_answer, index);
+        const answers = shuffle([question.correct_answer, ...question.incorrect_answers])
+        createAnswers(answers, question.correct_answer, i)
     }
 }
 
 function shuffle(a) {
-    for (let i = a.length - 1; i > 0; i--) {
+    for (let i = a.length; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [a[i], a[j]] = [a[j], a[i]];
     }
-    return a;
+    return a
 }
 
-const createAnwsers = (answers, correctAnswer, questionIndex) => {
-    for (let index = 0; index < answers.length; index++) {
-        const answer = answers[index];
-        const p$$ = document.createElement('p');
-        p$$.setAttribute("data-answer", questionIndex)
-        p$$.classList.add("answer");
+function createAnswers(answers, correctAnswer, questionIndex) {
+    for (let i = 0; i < answers.length; i++) {
+        const answer = answers[i]
 
-        p$$.textContent = answer;
-        p$$.addEventListener('click', (e) => {
-            markAnwser(e.target, questionIndex);
+        const answerP$$ = document.createElement('p')
+        answerP$$.setAttribute("data-answer", questionIndex)
+        answerP$$.classList.add("answer")
+
+        answerP$$.textContent = answer 
+        answerP$$.addEventListener('click', (e) => {
+            markAnswer(e.target, questionIndex)
             checkAnswer(answer, correctAnswer, questionIndex)
         })
-        gameBoard$$.appendChild(p$$);
+
+        questContainer$$.appendChild(answerP$$)
     }
 }
 
-const markAnwser = (target, questionIndex) => {
-    const allAnwsers = document.body.querySelectorAll("[data-answer='" + questionIndex + "'")
-    for (const answer of allAnwsers) {
-        answer.classList.remove("marked")
+function markAnswer(target, questionIndex) {
+    const allAnswers = document.body.querySelectorAll("[data-answer='" + questionIndex + "'")
+    for (let answer of allAnswers) {
+        answer.classList.remove('marked')
     }
-    target.classList.add('marked');
+    target.classList.add('marked')
 }
 
-const checkAnswer = (answer, correctAnswer, questionIndex) => {
-    questionsAnswered[questionIndex] = answer === correctAnswer;
-    console.log(questionsAnswered);
-    // IGUAL
-    // if (answer === correctAnswer) {
-    //     questionsAnswered[questionIndex] = true;
-    // } else{
-    //     questionsAnswered[questionIndex] = false;
-    // }
+function checkAnswer(answer, correctAnswer, questionIndex) {
+    answered[questionIndex] = answer === correctAnswer
+    console.log(answered)
 }
 
-const checkGame = () => {
-    const results = questionsAnswered.reduce((accumulator, questionAnswered) => {
-        return { correctResult: questionAnswered ? accumulator.correctResult + 1 : accumulator.correctResult, incorrectResult: !questionAnswered ? accumulator.incorrectResult + 1 : accumulator.incorrectResult }
-    }, { correctResult: 0, incorrectResult: 0 })
+function checkGame() {
+    let correct = 0
+    let incorrect = 0
 
-    const p$$ = document.createElement(`p`);
-    p$$.textContent = `You have ${results.correctResult} correct answers and ${results.incorrectResult} incorrect answers.`
-    gameBoard$$.appendChild(p$$);
+    for (let i = 0; i < answered.length; i++) {
+        const answer = answered[i] 
+        if (answer) {
+            correct++
+        }
+        else {
+            incorrect++
+        }
+    }
+
+    const resultP$$ = document.createElement('p')
+    resultP$$.innerHTML = `Tiene ${correct} respuestas correctas y ${incorrect} respuestas incorrectas`
+
+    questContainer$$.appendChild(resultP$$)
 }
-// IGUAL
-// const checkGameWithFor = () => {
-//     let correctResult = 0;
-//     let incorrectResult = 0;
-//     for (const questionAnswered of questionsAnswered) {
-//         if(questionAnswered){
-//             correctResult++;
-//         } else {
-//             incorrectResult++;
-//         }
-//     }
 
-//     const p$$ = document.createElement(`p`);
-//     p$$.textContent = `You have ${correctResult} correct answers and ${incorrectResult} incorrect answers.` 
-//     gameBoard$$.appendChild(p$$);
-// }
-
-const button$ = document.querySelector('[data-function="start-game"]');
-
-button$.addEventListener('click', startGame);
-
-const checkButton$ = document.querySelector('[data-function="check-game"]');
-
-checkButton$.addEventListener('click', checkGame);
+btnCheck$$.addEventListener('click', checkGame)
+btnQuest$$.addEventListener('click', initialize)
